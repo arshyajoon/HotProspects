@@ -62,6 +62,25 @@ struct ContentView: View {
         case badURL, requestFailed, unknown
     }
     
+    func save() {
+        if let encoded = try? JSONEncoder().encode(prospects.people) {
+            UserDefaults.standard.set(encoded, forKey: "SavedData")
+        }
+    }
+    
+    func getDocumentsDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0]
+    }
+
+    func loadData() {
+        if let data = UserDefaults.standard.data(forKey: "SavedData") {
+            if let decoded = try? JSONDecoder().decode([Prospect].self, from: data) {
+                self.prospects.people = decoded
+            }
+        }
+    }
+
     func fetchData(from urlString: String, completion: @escaping (Result<String, NetworkError>) -> Void) {
         // check the URL is OK, otherwise return with a failure
         guard let url = URL(string: urlString) else {
@@ -91,12 +110,12 @@ struct ContentView: View {
     
     var body: some View {
         TabView {
-            ProspectsView(filter: .contacted)
+            ProspectsView(filter: .none , showingIcons: true)
                 .tabItem {
                     Image(systemName: "person.3")
                     Text("Everyone")
                 }
-            ProspectsView(filter: .none)
+            ProspectsView(filter: .contacted)
                 .tabItem {
                     Image(systemName: "checkmark.circle")
                     Text("Contacted")

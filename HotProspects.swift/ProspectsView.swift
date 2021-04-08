@@ -8,11 +8,17 @@ import UserNotifications
 import CodeScanner
 import SwiftUI
 
+enum SortType {
+    case name, recent
+}
+
 enum FilterType {
     case none, contacted, uncontacted
 }
 
 struct ProspectsView: View {
+    @State private var showingActionSheet = false
+   @State private  var sort: SortType = .recent
     let filter: FilterType
     @EnvironmentObject var prospects: Prospects
     @State private var isShowingScanner = false
@@ -29,6 +35,17 @@ struct ProspectsView: View {
     
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
     
+    var sortedProspects: [Prospect] {
+        switch sort {
+        case .name:
+            return filteredProspects.sorted {
+                $0.name < $1.name
+            }
+        case .recent:
+            return filteredProspects
+        }
+    }
+    
     var filteredProspects: [Prospect] {
         switch filter {
         case .none:
@@ -39,6 +56,7 @@ struct ProspectsView: View {
             return prospects.people.filter { !$0.isContacted }
         }
     }
+    var showingIcons = false 
     func handleScan(result: Result<String, CodeScannerView.ScanError>) {
         self.isShowingScanner = false
         switch result {
@@ -91,11 +109,20 @@ struct ProspectsView: View {
         NavigationView {
             List {
                 ForEach(filteredProspects) { prospect in
+                    HStack {
                     VStack(alignment: .leading) {
                         Text(prospect.name)
                             .font(.headline)
                         Text(prospect.emailAddress)
                             .foregroundColor(.secondary)
+                    }
+                        Spacer()
+                        
+                        if showingIcons {
+                            if prospect.isContacted {
+                                Image(systemName: "checkmark.circle.fill")
+                            }
+                        }
                     }
                     .contextMenu {
                         Button(prospect.isContacted ? "Mark Uncontacted" : "Mark Contacted" ) {
@@ -111,15 +138,25 @@ struct ProspectsView: View {
                 }
             }
             .navigationBarTitle(title)
-                   .navigationBarItems(trailing: Button(action: {
-                    
-                    self.isShowingScanner = true 
+            .navigationBarItems(leading: Button(action: {self.showingActionSheet = true}) {
+               Text("Sort")
+            },
+                trailing: Button(action: {
+
+                    self.isShowingScanner = true
                    }) {
                        Image(systemName: "qrcode.viewfinder")
                        Text("Scan")
                    })
             .sheet(isPresented: $isShowingScanner) {
                 CodeScannerView(codeTypes: [.qr], simulatedData: "Paul Hudson\npaul@hackingwithswift.com", completion: self.handleScan)
+            }
+            .actionSheet(isPresented: $showingActionSheet) {
+                ActionSheet(title: Text("Choose your sorting"), buttons: [.default(Text("Name"), action: {
+                    self.sort = .name
+                }), .default(Text("Recent"), action: {
+                    self.sort = .recent
+                }), .cancel()])
             }
         }
     }

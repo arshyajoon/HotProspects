@@ -25,7 +25,7 @@ class Prospects: ObservableObject {
         save()
     }
 
-    @Published private(set) var people: [Prospect]
+    @Published var people: [Prospect]
     
     init() {
         if let data = UserDefaults.standard.data(forKey: Self.saveKey) {
@@ -46,6 +46,14 @@ class Prospects: ObservableObject {
    private func save() {
         if let encoded = try? JSONEncoder().encode(people) {
             UserDefaults.standard.set(encoded, forKey: Self.saveKey)
+        }
+    }
+    
+    private func loadData() {
+        if let data = UserDefaults.standard.data(forKey: Self.saveKey) {
+            if let decoded = try? JSONDecoder().decode([Prospect].self , from: data) {
+                self.people = decoded 
+            }
         }
     }
    
